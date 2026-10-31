@@ -124,7 +124,7 @@ class ASTerminal:
 
     def python_editor(self):
         self._print("Python environment opened.")
-        self._print("Type Exit.python() to return to AS.")
+        self._print("Type exit() or quit() to return to AS.")
         self._print("Ctrl+C cancels the current input; it does not close AS.")
         console = code.InteractiveConsole()
         while self._running:
@@ -139,7 +139,7 @@ class ASTerminal:
                 self._print("")
                 break
 
-            if not console.buffer and line.strip() == "Exit.python()":
+            if not console.buffer and line.strip() in ("exit()", "quit()"):
                 self._print("Leaving Python environment.")
                 break
 
@@ -277,7 +277,7 @@ class ASTerminal:
 
     def open_editor(self, filename):
         if not filename:
-            self._print("Usage: Url filename.py")
+            self._print("Usage: edit FILE")
             return
         path = Path(filename).expanduser()
         if not path.is_absolute():
@@ -482,23 +482,23 @@ class ASTerminal:
         self._print("Tools:")
         self._print("  info                 Show Python and system information")
         self._print("  which COMMAND        Find an installed command")
-        self._print("  Editor.py            Open the Python environment")
-        self._print("  Url FILE             Open the built-in text editor")
-        self._print("  pips download        Install a Python package")
-        self._print("  Stop AS              Stop the running command")
+        self._print("  python               Open the Python interactive interpreter")
+        self._print("  edit FILE            Open the built-in text editor")
+        self._print("  pip install PACKAGE  Install Python package(s)")
+        self._print("  stop                 Stop the running command")
         self._print("  clear                Clear the screen")
         self._print("  help                 Show this help")
         self._print("  exit                 Close AS Terminal")
         self._print("")
         self._print("Other system commands are passed to your operating-system shell.")
-        self._print("Inside Python, type Exit.python() to return here.")
+        self._print("Inside Python, type exit() or quit() to return here.")
 
     def execute(self, command):
         command = command.strip()
         if not command:
             return
 
-        if command == "Stop AS":
+        if command == "stop":
             self.stop_command()
             return
 
@@ -517,17 +517,20 @@ class ASTerminal:
         name = parts[0]
         arguments = parts[1:]
 
-        if name in ("Editor.py", "editor.py"):
+        if name == "python":
             self.python_editor()
             return
-        if name == "pips" and arguments == ["download"]:
-            self.install_package()
+        if name == "pip" and arguments and arguments[0] == "install":
+            if len(arguments) == 1:
+                self.install_package()
+            else:
+                self._run_process([sys.executable, "-m", "pip", "install"] + arguments[1:])
             return
-        if name == "Url":
+        if name == "edit":
             filename = " ".join(arguments)
             if not filename:
-                try:
-                    filename = input("Enter file name: ").strip()
+                self._print("Usage: edit FILE")
+                return
                 except (KeyboardInterrupt, EOFError):
                     self._print("")
                     return

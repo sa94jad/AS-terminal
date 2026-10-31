@@ -99,13 +99,23 @@ class TerminalCommandTests(unittest.TestCase):
         self.assertTrue(nonempty.exists())
         self.assertIn("rmdir:", output)
 
+    def test_legacy_nonstandard_package_command_is_not_documented_or_handled(self):
+        output = self.run_command("pips download")
+        self.assertNotIn("Package name(s):", output)
+        self.assertNotIn("pips download", self.run_command("help"))
+
+    def test_pip_install_uses_current_python(self):
+        with patch.object(self.terminal, "_run_process") as run_process:
+            self.run_command("pip install requests")
+        run_process.assert_called_once_with([__import__("sys").executable, "-m", "pip", "install", "requests"])
+
     def test_bad_quotes_are_reported_without_running_shell(self):
         output = self.run_command('cat "unfinished')
         self.assertIn("Invalid command syntax", output)
 
     def test_help_mentions_daily_commands(self):
         output = self.run_command("help")
-        for command in ("ls", "cat", "touch", "mkdir", "cp", "mv", "rm", "info"):
+        for command in ("ls", "cat", "touch", "mkdir", "cp", "mv", "rm", "info", "pip install PACKAGE", "python", "edit FILE", "stop"):
             self.assertIn(command, output)
 
 

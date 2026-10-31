@@ -19,7 +19,6 @@ classifiers = [
 ]
 
 [project.scripts]
-"AS.terminal" = "as_terminal.core:main"
 as-terminal = "as_terminal.core:main"
 
 [tool.setuptools]

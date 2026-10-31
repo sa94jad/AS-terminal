@@ -110,6 +110,14 @@ class TerminalCommandTests(unittest.TestCase):
             self.run_command("pip install requests")
         run_process.assert_called_once_with([__import__("sys").executable, "-m", "pip", "install", "requests"])
 
+    def test_python_command_uses_standard_exit(self):
+        with patch("builtins.input", return_value="exit()"):
+            output = self.run_command("python")
+        self.assertIn("Leaving Python environment.", output)
+
+    def test_edit_requires_a_filename(self):
+        output = self.run_command("edit")
+        self.assertIn("Usage: edit FILE", output)
     def test_bad_quotes_are_reported_without_running_shell(self):
         output = self.run_command('cat "unfinished')
         self.assertIn("Invalid command syntax", output)

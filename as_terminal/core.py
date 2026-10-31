@@ -97,7 +97,7 @@ class ASTerminal:
             self._print("The running command is not accepting input.")
             return
         try:
-            process.stdin.write(line + "\\n")
+            process.stdin.write(line + "\n")
             process.stdin.flush()
         except (BrokenPipeError, OSError):
             self._print("The running command has closed its input.")
@@ -153,7 +153,8 @@ class ASTerminal:
 
     def _read_file(self, path):
         try:
-            lines = path.read_text(encoding="utf-8").splitlines()\n            return lines if lines else [""]
+            lines = path.read_text(encoding="utf-8").splitlines()
+            return lines if lines else [""]
         except FileNotFoundError:
             return [""]
         except UnicodeDecodeError:

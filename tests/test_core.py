@@ -25,8 +25,8 @@ class TerminalCommandTests(unittest.TestCase):
         return output.getvalue()
 
     def test_version_is_updated(self):
-        self.assertEqual(VERSION, "1.2.0")
-        self.assertIn("1.2.0", self.run_command("version"))
+        self.assertEqual(VERSION, "1.2.1")
+        self.assertIn("1.2.1", self.run_command("version"))
 
     def test_touch_ls_and_cat(self):
         self.run_command("touch notes.txt")
@@ -110,6 +110,28 @@ class TerminalCommandTests(unittest.TestCase):
             self.run_command("pip install requests")
         run_process.assert_called_once_with([__import__("sys").executable, "-m", "pip", "install", "requests"])
 
+    def test_php_download_command_is_as_terminal_builtin(self):
+        with patch.object(self.terminal, "_run_process") as run_process:
+            output = self.run_command("pkg php download")
+        run_process.assert_called_once_with(["pkg", "install", "php"])
+        self.assertIn("Installing PHP", output)
+
+    def test_php_upgrade_command_does_not_run_shell_operator(self):
+        with patch.object(self.terminal, "_run_process") as run_process:
+            output = self.run_command("Upgrade & php")
+        run_process.assert_called_once_with(["pkg", "install", "php"])
+        self.assertIn("Updating PHP", output)
+
+    def test_php_upgrade_command_is_case_insensitive(self):
+        with patch.object(self.terminal, "_run_process") as run_process:
+            self.run_command("UPGRADE & PHP")
+        run_process.assert_called_once_with(["pkg", "install", "php"])
+
+    def test_php_editor_uses_existing_text_editor(self):
+        with patch.object(self.terminal, "open_editor") as editor:
+            self.run_command("edit index.php")
+        editor.assert_called_once_with("index.php")
+
     def test_python_command_uses_standard_exit(self):
         with patch("builtins.input", return_value="exit()"):
             output = self.run_command("python")
@@ -124,7 +146,7 @@ class TerminalCommandTests(unittest.TestCase):
 
     def test_help_mentions_daily_commands(self):
         output = self.run_command("help")
-        for command in ("ls", "cat", "touch", "mkdir", "cp", "mv", "rm", "info", "pip install PACKAGE", "python", "edit FILE", "stop"):
+        for command in ("ls", "cat", "touch", "mkdir", "cp", "mv", "rm", "info", "pip install PACKAGE", "pkg php download", "Upgrade & php", "python", "edit FILE", "stop"):
             self.assertIn(command, output)
 
 

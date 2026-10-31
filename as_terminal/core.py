@@ -52,7 +52,7 @@ class ASTerminal:
                 args,
                 shell=shell,
                 cwd=str(self.cwd),
-                stdin=subprocess.DEVNULL,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -90,6 +90,17 @@ class ASTerminal:
                         self._process = None
 
         threading.Thread(target=read_output, daemon=True).start()
+
+    def _send_process_input(self, line):
+        process = self._active_process()
+        if process is None or process.stdin is None:
+            self._print("The running command is not accepting input.")
+            return
+        try:
+            process.stdin.write(line + "\\n")
+            process.stdin.flush()
+        except (BrokenPipeError, OSError):
+            self._print("The running command has closed its input.")
 
     def stop_command(self):
         process = self._active_process()
@@ -321,7 +332,7 @@ class ASTerminal:
             return
 
         if self._active_process() is not None:
-            self._print("A command is still running. Type Stop AS first.")
+            self._send_process_input(command)
             return
 
         if command in ("Editor.py", "editor.py"):

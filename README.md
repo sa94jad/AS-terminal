@@ -95,7 +95,7 @@ git+https://github.com/OWNER/REPOSITORY.git
 - Ctrl+C inside the Python prompt cancels the current input and returns to the Python prompt.
 - Ctrl+C in the built-in editor is ignored. Ctrl+X saves the file.
 - External commands run asynchronously so that `Stop AS` can be typed while one is running.
-- External commands currently receive no interactive keyboard input. Commands that require you to answer prompts may not work correctly.
+- While an external command is running, lines you type are sent to that command as standard input. Type `Stop AS` to stop it instead.
 - AS Terminal uses your current Python installation and its pip. It does not bundle Python or install packages into a separate environment.
 - The built-in editor is a small text editor, not a full replacement for nano or a graphical IDE.
 

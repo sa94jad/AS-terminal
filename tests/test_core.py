@@ -99,9 +99,10 @@ class TerminalCommandTests(unittest.TestCase):
         self.assertTrue(nonempty.exists())
         self.assertIn("rmdir:", output)
 
-    def test_legacy_nonstandard_package_command_is_not_documented_or_handled(self):
-        output = self.run_command("pips download")
-        self.assertNotIn("Package name(s):", output)
+    def test_legacy_nonstandard_package_command_is_not_an_alias(self):
+        with patch.object(self.terminal, "_run_process") as run_process:
+            self.run_command("pips download")
+        run_process.assert_called_once_with("pips download", shell=True)
         self.assertNotIn("pips download", self.run_command("help"))
 
     def test_pip_install_uses_current_python(self):

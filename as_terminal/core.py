@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 class ASTerminal:
@@ -465,6 +465,12 @@ class ASTerminal:
             return
         self._run_process([sys.executable, "-m", "pip", "install"] + packages)
 
+    def install_php(self, updating=False):
+        action = "Updating" if updating else "Installing"
+        self._print("[AS] " + action + " PHP through the Termux package manager...")
+        # Use an argument list (not shell=True): only the PHP package is requested.
+        self._run_process(["pkg", "install", "php"])
+
     def help(self):
         self._print("AS Terminal " + VERSION + " - lightweight daily commands")
         self._print("")
@@ -487,6 +493,9 @@ class ASTerminal:
         self._print("  python               Open the Python interactive interpreter")
         self._print("  edit FILE            Open the built-in text editor")
         self._print("  pip install PACKAGE  Install Python package(s)")
+        self._print("  pkg php download     Install PHP through Termux pkg")
+        self._print("  Upgrade & php        Update PHP only (not all packages)")
+        self._print("  edit FILE.php        Edit PHP source as UTF-8 text")
         self._print("  stop                 Stop the running command")
         self._print("  clear                Clear the screen")
         self._print("  help                 Show this help")
@@ -508,6 +517,12 @@ class ASTerminal:
             self._send_process_input(command)
             return
 
+        # These are AS Terminal built-ins. In particular, never pass '&' to
+        # the host shell as an operator.
+        if command.casefold() == "upgrade & php".casefold():
+            self.install_php(updating=True)
+            return
+
         try:
             parts = shlex.split(command)
         except ValueError as exc:
@@ -519,6 +534,9 @@ class ASTerminal:
         name = parts[0]
         arguments = parts[1:]
 
+        if name == "pkg" and arguments == ["php", "download"]:
+            self.install_php()
+            return
         if name == "python":
             self.python_editor()
             return

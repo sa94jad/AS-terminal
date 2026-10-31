@@ -1,6 +1,6 @@
 # AS Terminal
 
-**Version:** 1.2.0
+**Version:** 1.2.1
 
 AS Terminal is a lightweight Python command environment for Termux and Android. It adds convenient everyday file and system commands while still using the operating-system shell for commands it does not handle itself. It is not a replacement for Termux, Android, or Linux.
 
@@ -63,7 +63,23 @@ Other system commands are passed to your operating-system shell. This keeps AS s
 - `python` opens the interactive Python environment.
 - Type `exit()` or `quit()` to return to AS.
 - `edit filename.py` opens the built-in UTF-8 text editor.
+- PHP source files can also be opened with `edit filename.php`; the editor is a plain-text editor (no PHP syntax highlighting or PHP execution).
 - In the editor, use the arrow keys to move and **Ctrl+X** to save.
+
+## PHP on Termux
+
+Run these commands at the **AS Terminal** prompt:
+
+```text
+pkg php download
+Upgrade & php
+edit index.php
+```
+
+- `pkg php download` asks Termux's package manager to install PHP.
+- `Upgrade & php` asks the package manager to install/update only the PHP package; it does not run the system-wide `pkg upgrade` command.
+- These are AS Terminal built-ins. They are not commands that replace or modify the normal Termux shell commands.
+- PHP installation requires Termux and an available `pkg` command.
 
 ## Installing Python packages
 

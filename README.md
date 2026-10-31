@@ -1,27 +1,33 @@
 # AS Terminal
 
-**Version:** 1.1.2
+**Version:** 1.2.1
 
-AS Terminal is a small Python-based command environment designed for Termux and Android. It provides a familiar prompt and a few custom commands. It runs on top of your existing operating-system shell; it is not a replacement for Termux, Android, or Linux.
+AS Terminal is a lightweight Python command environment for Termux and Android. It adds convenient everyday file and system commands while still using the operating-system shell for commands it does not handle itself. It is not a replacement for Termux, Android, or Linux.
 
-## Install
+## Requirements
 
-From the GitHub repository:
+- Python 3.8 or newer
+- Termux or another terminal emulator
+- No third-party runtime dependencies
+
+## Install from this repository
 
 ```bash
-python -m pip install git+https://github.com/dnsfb28ejxizk-star/AS-terminal.git
+python -m pip install git+https://github.com/sa94jad/AS-terminal.git
 ```
 
 Or install a local clone:
 
 ```bash
+git clone https://github.com/sa94jad/AS-terminal.git
+cd AS-terminal
 python -m pip install .
 ```
 
-Then start it:
+Start it:
 
 ```bash
-AS.terminal
+as-terminal
 ```
 
 You can also run it without installing the console command:
@@ -30,74 +36,83 @@ You can also run it without installing the console command:
 python -m as_terminal
 ```
 
-## Welcome screen
-
-```text
-Welcome to AS
-You can test and write your code here.
-VERSION : 1.1.2
-
-Enjoy:
-
-$AS:
-```
-
-## Commands
+## Everyday commands
 
 | Command | What it does |
 | --- | --- |
-| `Editor.py` | Opens the interactive Python environment |
-| `Url sajad.py` | Opens the built-in text editor for a file |
-| `pips download` | Asks for a package name, then installs it with pip |
-| `Stop AS` | Stops the currently running external command or pip installation |
-| `cd PATH` | Changes the working directory |
-| `pwd` | Prints the working directory |
-| `clear` | Clears the screen |
-| `help` | Shows commands |
-| `exit` | Closes AS Terminal |
+| `ls [-a] [PATH]` | List files; `-a` includes hidden files |
+| `pwd` | Show the current directory |
+| `cd [PATH]` | Change directory; no path goes to your home directory |
+| `cat FILE` | Print a UTF-8 text file |
+| `touch FILE` | Create an empty file |
+| `mkdir [-p] DIR` | Create a directory |
+| `cp SOURCE DEST` | Copy a file |
+| `mv SOURCE DEST` | Move or rename a file |
+| `rm FILE` | Remove a file after confirmation; directories are not removed |
+| `rmdir DIR` | Remove an empty directory |
+| `info` | Show Python, platform, and directory information |
+| `which COMMAND` | Find a command on PATH |
+| `clear` | Clear the terminal |
+| `help` | Show all built-in commands |
+| `exit` | Close AS Terminal |
 
-Inside the Python environment, type:
+Other system commands are passed to your operating-system shell. This keeps AS small and avoids reimplementing the full shell.
 
-```python
-Exit.python()
-```
+## Python and editor
 
-to return to the AS prompt.
+- `python` opens the interactive Python environment.
+- Type `exit()` or `quit()` to return to AS.
+- `edit filename.py` opens the built-in UTF-8 text editor.
+- PHP source files can also be opened with `edit filename.php`; the editor is a plain-text editor (no PHP syntax highlighting or PHP execution).
+- In the editor, use the arrow keys to move and **Ctrl+X** to save.
 
-## Built-in editor
+## PHP on Termux
 
-Open or create a file:
-
-```text
-Url sajad.py
-```
-
-Use the arrow keys to move, type to edit, and **Ctrl+X** to save and return to AS. Ctrl+C is ignored by the editor.
-
-## Installing packages
-
-At the AS prompt:
+Run these commands at the **AS Terminal** prompt:
 
 ```text
-pips download
-Enter your pip : requests
+pkg php download
+Upgrade & php
+edit index.php
 ```
 
-The package is installed into the same Python interpreter used to launch AS Terminal. You can also enter a pip requirement or a Git URL, for example:
+- `pkg php download` asks Termux's package manager to install PHP.
+- `Upgrade & php` asks the package manager to install/update only the PHP package; it does not run the system-wide `pkg upgrade` command.
+- These are AS Terminal built-ins. They are not commands that replace or modify the normal Termux shell commands.
+- PHP installation requires Termux and an available `pkg` command.
+
+## Installing Python packages
+
+At the AS prompt, use the standard pip command:
 
 ```text
-git+https://github.com/OWNER/REPOSITORY.git
+pip install requests
 ```
 
-## Important behavior and limits
+You can install multiple packages in one command:
 
+```text
+pip install requests rich
+```
+
+AS runs pip through the same Python interpreter used to launch AS Terminal.
+
+## Process behavior
+
+- External commands run asynchronously.
+- While a command is running, input is sent to that process.
+- Type `stop` to stop the running process.
 - Ctrl+C at the AS prompt does not close AS Terminal.
-- Ctrl+C inside the Python prompt cancels the current input and returns to the Python prompt.
-- Ctrl+C in the built-in editor is ignored. Ctrl+X saves the file.
-- External commands run asynchronously so that `Stop AS` can be typed while one is running.
-- While an external command is running, lines you type are sent to that command as standard input. Type `Stop AS` to stop it instead.
-- AS Terminal uses your current Python installation and its pip. It does not bundle Python or install packages into a separate environment.
-- The built-in editor is a small text editor, not a full replacement for nano or a graphical IDE.
+
+## Development and tests
+
+Run the test suite with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The GitHub Actions test workflow checks Python 3.8, 3.11, and 3.13.
 
 ## License
 

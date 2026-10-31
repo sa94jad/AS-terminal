@@ -1,17 +1,17 @@
 """AS Terminal: a small terminal-like environment for Python and Termux."""
 
 import code
-import curses
 import os
 import shlex
 import signal
 import subprocess
+import shutil
 import sys
 import threading
 from pathlib import Path
 
 
-VERSION = "1.1.2"
+VERSION = "1.2.0"
 
 
 class ASTerminal:
@@ -165,6 +165,8 @@ class ASTerminal:
             return None
 
     def _curses_editor(self, path, lines):
+        import curses
+
         def editor(stdscr):
             try:
                 curses.curs_set(1)
@@ -291,6 +293,158 @@ class ASTerminal:
             self._print("Terminal editor could not start: " + str(exc))
             self._print("Use a real terminal (for example, Termux) and try again.")
 
+
+    def _resolve_path(self, value):
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = self.cwd / path
+        return path
+
+    def list_directory(self, arguments):
+        show_hidden = "-a" in arguments or "--all" in arguments
+        targets = [item for item in arguments if item not in ("-a", "--all")]
+        if not targets:
+            targets = ["."]
+        for index, target in enumerate(targets):
+            path = self._resolve_path(target)
+            if len(targets) > 1:
+                self._print(str(path) + ":")
+            try:
+                if path.is_file() or path.is_symlink():
+                    self._print(path.name)
+                    continue
+                if not path.is_dir():
+                    self._print("ls: no such file or directory: " + str(path))
+                    continue
+                entries = list(path.iterdir())
+                if not show_hidden:
+                    entries = [entry for entry in entries if not entry.name.startswith(".")]
+                entries.sort(key=lambda entry: (not entry.is_dir(), entry.name.casefold()))
+                if not entries:
+                    self._print("(empty)")
+                else:
+                    for entry in entries:
+                        suffix = "/" if entry.is_dir() else ""
+                        self._print(entry.name + suffix)
+            except OSError as exc:
+                self._print("ls: " + str(exc))
+            if index < len(targets) - 1:
+                self._print("")
+
+    def show_files(self, arguments):
+        if not arguments:
+            self._print("Usage: cat FILE [FILE ...]")
+            return
+        for filename in arguments:
+            path = self._resolve_path(filename)
+            try:
+                if not path.is_file():
+                    self._print("cat: not a file: " + str(path))
+                    continue
+                self._print(path.read_text(encoding="utf-8"),)
+            except UnicodeDecodeError:
+                self._print("cat: UTF-8 text files only: " + str(path))
+            except OSError as exc:
+                self._print("cat: " + str(exc))
+
+    def create_files(self, arguments):
+        if not arguments:
+            self._print("Usage: touch FILE [FILE ...]")
+            return
+        for filename in arguments:
+            path = self._resolve_path(filename)
+            try:
+                path.touch(exist_ok=True)
+                self._print("Created: " + str(path))
+            except OSError as exc:
+                self._print("touch: " + str(exc))
+
+    def make_directories(self, arguments):
+        parents = False
+        paths = []
+        for item in arguments:
+            if item in ("-p", "--parents"):
+                parents = True
+            else:
+                paths.append(item)
+        if not paths:
+            self._print("Usage: mkdir [-p] DIRECTORY [DIRECTORY ...]")
+            return
+        for directory in paths:
+            path = self._resolve_path(directory)
+            try:
+                path.mkdir(parents=parents, exist_ok=parents)
+                self._print("Created directory: " + str(path))
+            except OSError as exc:
+                self._print("mkdir: " + str(exc))
+
+    def copy_or_move(self, arguments, move=False):
+        action = "mv" if move else "cp"
+        if len(arguments) != 2:
+            self._print("Usage: " + action + " SOURCE DESTINATION")
+            return
+        source = self._resolve_path(arguments[0])
+        destination = self._resolve_path(arguments[1])
+        try:
+            if not source.exists() and not source.is_symlink():
+                raise FileNotFoundError(str(source))
+            if move:
+                shutil.move(str(source), str(destination))
+            else:
+                if source.is_dir():
+                    raise IsADirectoryError("cp currently copies files only")
+                shutil.copy2(str(source), str(destination))
+            self._print(action + ": done")
+        except OSError as exc:
+            self._print(action + ": " + str(exc))
+
+    def remove_file(self, arguments):
+        if len(arguments) != 1:
+            self._print("Usage: rm FILE (directories are not removed)")
+            return
+        path = self._resolve_path(arguments[0])
+        if path.is_dir() and not path.is_symlink():
+            self._print("rm: directories are not removed; use rmdir for an empty directory")
+            return
+        try:
+            answer = input("Remove " + str(path) + "? [y/N] ").strip().lower()
+        except (KeyboardInterrupt, EOFError):
+            self._print("Cancelled.")
+            return
+        if answer not in ("y", "yes"):
+            self._print("Cancelled.")
+            return
+        try:
+            path.unlink()
+            self._print("Removed: " + str(path))
+        except OSError as exc:
+            self._print("rm: " + str(exc))
+
+    def remove_directory(self, arguments):
+        if len(arguments) != 1:
+            self._print("Usage: rmdir EMPTY_DIRECTORY")
+            return
+        path = self._resolve_path(arguments[0])
+        try:
+            path.rmdir()
+            self._print("Removed directory: " + str(path))
+        except OSError as exc:
+            self._print("rmdir: " + str(exc))
+
+    def system_info(self):
+        self._print("AS Terminal " + VERSION)
+        self._print("Python: " + sys.version.split()[0])
+        self._print("Platform: " + sys.platform)
+        self._print("Working directory: " + str(self.cwd))
+        self._print("Home directory: " + str(Path.home()))
+
+    def locate_command(self, arguments):
+        if len(arguments) != 1:
+            self._print("Usage: which COMMAND")
+            return
+        result = shutil.which(arguments[0])
+        self._print(result if result else "Command not found: " + arguments[0])
+
     def install_package(self):
         try:
             requirement = input("Enter your pip : ").strip()
@@ -311,16 +465,32 @@ class ASTerminal:
         self._run_process([sys.executable, "-m", "pip", "install"] + packages)
 
     def help(self):
-        self._print("AS Terminal commands:")
-        self._print("  Editor.py       Open the Python environment")
-        self._print("  Url file.py     Create or edit a UTF-8 file")
-        self._print("  pips download   Install a Python package")
-        self._print("  Stop AS         Stop the running command")
-        self._print("  pwd             Show the current directory")
-        self._print("  cd PATH         Change the current directory")
-        self._print("  clear           Clear the screen")
-        self._print("  exit            Close AS Terminal")
+        self._print("AS Terminal " + VERSION + " - lightweight daily commands")
         self._print("")
+        self._print("Files and folders:")
+        self._print("  ls [-a] [PATH]       List files (-a includes hidden files)")
+        self._print("  pwd                  Show the current directory")
+        self._print("  cd [PATH]            Change directory (default: home)")
+        self._print("  cat FILE             Print a UTF-8 text file")
+        self._print("  touch FILE           Create an empty file")
+        self._print("  mkdir [-p] DIR       Create a directory")
+        self._print("  cp SRC DEST          Copy a file")
+        self._print("  mv SRC DEST          Move or rename a file")
+        self._print("  rm FILE              Remove a file after confirmation")
+        self._print("  rmdir DIR            Remove an empty directory")
+        self._print("")
+        self._print("Tools:")
+        self._print("  info                 Show Python and system information")
+        self._print("  which COMMAND        Find an installed command")
+        self._print("  Editor.py            Open the Python environment")
+        self._print("  Url FILE             Open the built-in text editor")
+        self._print("  pips download        Install a Python package")
+        self._print("  Stop AS              Stop the running command")
+        self._print("  clear                Clear the screen")
+        self._print("  help                 Show this help")
+        self._print("  exit                 Close AS Terminal")
+        self._print("")
+        self._print("Other system commands are passed to your operating-system shell.")
         self._print("Inside Python, type Exit.python() to return here.")
 
     def execute(self, command):
@@ -336,53 +506,100 @@ class ASTerminal:
             self._send_process_input(command)
             return
 
-        if command in ("Editor.py", "editor.py"):
+        try:
+            parts = shlex.split(command)
+        except ValueError as exc:
+            self._print("Invalid command syntax: " + str(exc))
+            return
+        if not parts:
+            return
+
+        name = parts[0]
+        arguments = parts[1:]
+
+        if name in ("Editor.py", "editor.py"):
             self.python_editor()
             return
-
-        if command == "pips download":
+        if name == "pips" and arguments == ["download"]:
             self.install_package()
             return
-
-        if command.startswith("Url "):
-            self.open_editor(command[4:].strip())
-            return
-        if command == "Url":
-            try:
-                filename = input("Enter file name: ").strip()
-            except (KeyboardInterrupt, EOFError):
-                self._print("")
-                return
+        if name == "Url":
+            filename = " ".join(arguments)
+            if not filename:
+                try:
+                    filename = input("Enter file name: ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    self._print("")
+                    return
             self.open_editor(filename)
             return
-
-        if command in ("help", "AS.help()"):
+        if name in ("help", "AS.help()"):
             self.help()
             return
-        if command in ("exit", "quit"):
+        if name in ("exit", "quit"):
             self._running = False
             return
-        if command == "AS.terminal":
+        if name == "AS.terminal":
             self._print("AS Terminal is already running.")
             return
-        if command == "pwd":
-            self._print(str(self.cwd))
+        if name == "version":
+            self._print("AS Terminal " + VERSION)
             return
-        if command.startswith("cd"):
-            parts = shlex.split(command)
-            target = parts[1] if len(parts) > 1 else str(Path.home())
-            new_path = Path(target).expanduser()
-            if not new_path.is_absolute():
-                new_path = self.cwd / new_path
+        if name == "info":
+            self.system_info()
+            return
+        if name == "which":
+            self.locate_command(arguments)
+            return
+        if name == "pwd":
+            if arguments:
+                self._print("Usage: pwd")
+            else:
+                self._print(str(self.cwd))
+            return
+        if name == "cd":
+            if len(arguments) > 1:
+                self._print("Usage: cd [PATH]")
+                return
+            target = arguments[0] if arguments else str(Path.home())
+            new_path = self._resolve_path(target)
             try:
-                self.cwd = new_path.resolve(strict=True)
-                if not self.cwd.is_dir():
-                    raise NotADirectoryError(str(self.cwd))
+                resolved = new_path.resolve(strict=True)
+                if not resolved.is_dir():
+                    raise NotADirectoryError(str(resolved))
+                self.cwd = resolved
             except OSError as exc:
                 self._print("cd: " + str(exc))
             return
-        if command == "clear":
-            print("\033[2J\033[H", end="", flush=True)
+        if name == "ls":
+            self.list_directory(arguments)
+            return
+        if name == "cat":
+            self.show_files(arguments)
+            return
+        if name == "touch":
+            self.create_files(arguments)
+            return
+        if name == "mkdir":
+            self.make_directories(arguments)
+            return
+        if name == "cp":
+            self.copy_or_move(arguments, move=False)
+            return
+        if name == "mv":
+            self.copy_or_move(arguments, move=True)
+            return
+        if name == "rm":
+            self.remove_file(arguments)
+            return
+        if name == "rmdir":
+            self.remove_directory(arguments)
+            return
+        if name == "clear":
+            if arguments:
+                self._print("Usage: clear")
+            else:
+                print("\\033[2J\\033[H", end="", flush=True)
             return
 
         self._run_process(command, shell=True)

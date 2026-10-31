@@ -27,7 +27,7 @@ python -m pip install .
 Start it:
 
 ```bash
-AS.terminal
+as-terminal
 ```
 
 You can also run it without installing the console command:

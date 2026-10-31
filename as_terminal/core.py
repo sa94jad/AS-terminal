@@ -149,7 +149,8 @@ class ASTerminal:
                 console.resetbuffer()
                 self._print("^C")
             except SystemExit:
-                self._print("Python environment is still available. Use Exit.python() to return.")
+                self._print("Leaving Python environment.")
+                break
 
     def _read_file(self, path):
         try:
@@ -447,7 +448,7 @@ class ASTerminal:
 
     def install_package(self):
         try:
-            requirement = input("Enter your pip : ").strip()
+            requirement = input("Package name(s): ").strip()
         except (KeyboardInterrupt, EOFError):
             self._print("\nPackage installation cancelled.")
             return
@@ -531,9 +532,6 @@ class ASTerminal:
             if not filename:
                 self._print("Usage: edit FILE")
                 return
-                except (KeyboardInterrupt, EOFError):
-                    self._print("")
-                    return
             self.open_editor(filename)
             return
         if name in ("help", "AS.help()"):

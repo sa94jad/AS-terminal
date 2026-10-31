@@ -534,14 +534,11 @@ class ASTerminal:
                 return
             self.open_editor(filename)
             return
-        if name in ("help", "AS.help()"):
+        if name == "help":
             self.help()
             return
         if name in ("exit", "quit"):
             self._running = False
-            return
-        if name == "AS.terminal":
-            self._print("AS Terminal is already running.")
             return
         if name == "version":
             self._print("AS Terminal " + VERSION)

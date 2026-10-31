@@ -142,7 +142,7 @@ class ASTerminal:
 
     def _read_file(self, path):
         try:
-            return path.read_text(encoding="utf-8").splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()\n            return lines if lines else [""]
         except FileNotFoundError:
             return [""]
         except UnicodeDecodeError:

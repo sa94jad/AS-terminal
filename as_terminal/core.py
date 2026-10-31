@@ -599,7 +599,7 @@ class ASTerminal:
             if arguments:
                 self._print("Usage: clear")
             else:
-                print("\\033[2J\\033[H", end="", flush=True)
+                print("\033[2J\033[H", end="", flush=True)
             return
 
         self._run_process(command, shell=True)

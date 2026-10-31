@@ -482,6 +482,7 @@ class ASTerminal:
         self._print("")
         self._print("Tools:")
         self._print("  info                 Show Python and system information")
+        self._print("  version              Show AS Terminal version")
         self._print("  which COMMAND        Find an installed command")
         self._print("  python               Open the Python interactive interpreter")
         self._print("  edit FILE            Open the built-in text editor")

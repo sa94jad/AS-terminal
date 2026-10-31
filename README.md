@@ -60,19 +60,26 @@ Other system commands are passed to your operating-system shell. This keeps AS s
 
 ## Python and editor
 
-- `Editor.py` opens the interactive Python environment.
-- Type `Exit.python()` to return to AS.
-- `Url filename.py` opens the built-in UTF-8 text editor.
+- `python` opens the interactive Python environment.
+- Type `exit()` or `quit()` to return to AS.
+- `edit filename.py` opens the built-in UTF-8 text editor.
 - In the editor, use the arrow keys to move and **Ctrl+X** to save.
 
 ## Installing Python packages
 
-At the AS prompt:
+At the AS prompt, use the standard pip command:
 
 ```text
-pips download
-Enter your pip : requests
+pip install requests
 ```
+
+You can install multiple packages in one command:
+
+```text
+pip install requests rich
+```
+
+AS runs pip through the same Python interpreter used to launch the terminal.
 
 Packages are installed into the same Python interpreter used to launch AS Terminal.
 
@@ -80,7 +87,7 @@ Packages are installed into the same Python interpreter used to launch AS Termin
 
 - External commands run asynchronously.
 - While a command is running, input is sent to that process.
-- Type `Stop AS` to stop the running process.
+- Type `stop` to stop the running process.
 - Ctrl+C at the AS prompt does not close AS Terminal.
 
 ## Development and tests

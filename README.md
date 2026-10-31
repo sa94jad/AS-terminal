@@ -79,9 +79,7 @@ You can install multiple packages in one command:
 pip install requests rich
 ```
 
-AS runs pip through the same Python interpreter used to launch the terminal.
-
-Packages are installed into the same Python interpreter used to launch AS Terminal.
+AS runs pip through the same Python interpreter used to launch AS Terminal.
 
 ## Process behavior
 

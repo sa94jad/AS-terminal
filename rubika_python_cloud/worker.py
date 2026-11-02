@@ -40,15 +40,18 @@ try:
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10,
             check=False, env=child_env, preexec_fn=preexec,
         )
-        result["status"] = "success" if completed.returncode == 0 else "error"
-        result["output"] = completed.stdout[-12_000:]
-        if completed.returncode:
-            result["output"] += f"\n[exit code: {completed.returncode}]"
+        if completed.returncode == 0:
+            result["status"] = "success"
+            result["output"] = completed.stdout[-12_000:]
+        elif completed.returncode == -9:
+            result["output"] = "خطا: محدودیت زمان CPU یا منابع سیستم تمام شد."
+        else:
+            result["output"] = completed.stdout[-12_000:] + f"\n[exit code: {completed.returncode}]"
 except subprocess.TimeoutExpired as error:
     captured = error.stdout or b""
     if isinstance(captured, bytes):
         captured = captured.decode("utf-8", errors="replace")
-    result["output"] = str(captured)[-10_000:] + "\n[خطا: زمان اجرای ۱۰ ثانیه تمام شد.]"
+    result["output"] = str(captured)[-10_000:] + "\nخطا: زمان اجرای ۱۰ ثانیه تمام شد."
 except Exception as error:
     result["output"] = f"{type(error).__name__}: {error}"
 

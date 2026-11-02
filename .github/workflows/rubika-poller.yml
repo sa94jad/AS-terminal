@@ -1,0 +1,50 @@
+name: Rubika Poller
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: rubika-poller
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore update offset
+        uses: actions/cache/restore@v4
+        with:
+          path: state/offset_id.txt
+          key: rubika-offset-${{ github.run_id }}
+          restore-keys: |
+            rubika-offset-
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install poller dependency
+        run: python -m pip install --disable-pip-version-check -r rubika_python_cloud/requirements.txt
+      - name: Poll Rubika and dispatch isolated workers
+        env:
+          RUBIKA_BOT_TOKEN: ${{ secrets.RUBIKA_BOT_TOKEN }}
+          RUBIKA_ALLOWED_USERS: ${{ secrets.RUBIKA_ALLOWED_USERS }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python rubika_python_cloud/poller.py
+      - name: Save update offset
+        if: always() && hashFiles('state/offset_id.txt') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: state/offset_id.txt
+          key: rubika-offset-${{ github.run_id }}

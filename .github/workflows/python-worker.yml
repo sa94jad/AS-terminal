@@ -1,0 +1,50 @@
+name: Rubika Python Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      chat_id:
+        description: Rubika chat ID for the result
+        required: true
+        type: string
+      code_b64:
+        description: Base64-encoded Python source
+        required: true
+        type: string
+      request_id:
+        description: Request identifier
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout trusted runner code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runner dependency
+        run: python -m pip install --disable-pip-version-check -r rubika_python_cloud/requirements.txt
+      - name: Execute user Python in a fresh temporary directory
+        env:
+          INPUT_CHAT_ID: ${{ inputs.chat_id }}
+          INPUT_CODE_B64: ${{ inputs.code_b64 }}
+          INPUT_REQUEST_ID: ${{ inputs.request_id }}
+        run: python rubika_python_cloud/worker.py
+      - name: Upload result for the separate notifier
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: result/result.json
+          if-no-files-found: error
+          retention-days: 1

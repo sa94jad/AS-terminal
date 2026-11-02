@@ -13,7 +13,11 @@ GH_TOKEN = os.environ["GH_TOKEN"]
 ALLOWED_USERS = {x.strip() for x in os.environ.get("RUBIKA_ALLOWED_USERS", "").split(",") if x.strip()}
 OFFSET_FILE = Path("state/offset_id.txt")
 MAX_CODE_BYTES = 12_000
+MAX_JOBS_PER_POLL = 5
+USER_COOLDOWN_SECONDS = 15
 POLL_SECONDS = 225
+dispatch_count = 0
+last_dispatch_by_user = {}
 session = requests.Session()
 
 def api(method: str, payload: dict) -> dict:
@@ -52,7 +56,9 @@ def save_offset(value):
         OFFSET_FILE.write_text(str(value), encoding="utf-8")
 
 def handle_update(update: dict) -> None:
-    if update.get("type") not in ("NewMessage", "StartedBot", ""):
+    global dispatch_count
+    update_type = update.get("type") or update.get("update_type") or ""
+    if update_type not in ("NewMessage", "StartedBot", ""):
         return
     message = update.get("new_message") or {}
     if not isinstance(message, dict) or message.get("sender_type") == "Bot":
@@ -78,7 +84,21 @@ def handle_update(update: dict) -> None:
     if len(code.encode("utf-8")) > MAX_CODE_BYTES:
         send(chat_id, "حجم کد بیش از حد مجاز است (حداکثر ۱۲ کیلوبایت).")
         return
-    dispatch(chat_id, code)
+    if dispatch_count >= MAX_JOBS_PER_POLL:
+        send(chat_id, "سهمیه اجرای این نوبت پر شده؛ چند دقیقه دیگر دوباره امتحان کن.")
+        return
+    last_time = last_dispatch_by_user.get(sender_id, 0)
+    if time.monotonic() - last_time < USER_COOLDOWN_SECONDS:
+        send(chat_id, "برای جلوگیری از صف طولانی، بین اجراها ۱۵ ثانیه فاصله بگذار.")
+        return
+    try:
+        dispatch(chat_id, code)
+    except Exception as error:
+        print(f"Dispatch error: {type(error).__name__}: {error}")
+        send(chat_id, "ساخت محیط اجرا ناموفق بود؛ کمی بعد دوباره تلاش کن.")
+        return
+    dispatch_count += 1
+    last_dispatch_by_user[sender_id] = time.monotonic()
     send(chat_id, "کد دریافت شد؛ محیط اجرای جداگانه در GitHub Actions ساخته شد. ⏳")
 
 def main() -> None:

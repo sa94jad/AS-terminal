@@ -22,14 +22,23 @@ try:
                 resource.setrlimit(resource.RLIMIT_CPU, (8, 8))
                 resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
                 resource.setrlimit(resource.RLIMIT_FSIZE, (2 * 1024 * 1024, 2 * 1024 * 1024))
-                resource.setrlimit(resource.RLIMIT_NPROC, (32, 32))
+                resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
                 resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
             preexec = apply_limits
+        child_env = {
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "OPENBLAS_NUM_THREADS": "1",
+            "OMP_NUM_THREADS": "1",
+            "MKL_NUM_THREADS": "1",
+            "HOME": temp_dir,
+            "TMPDIR": temp_dir,
+        }
         completed = subprocess.run(
-            [sys.executable, "-I", str(script)], cwd=temp_dir, text=True,
+            [sys.executable, "-I", "-S", str(script)], cwd=temp_dir, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10,
-            check=False, env={"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "PYTHONIOENCODING": "utf-8"},
-            preexec_fn=preexec,
+            check=False, env=child_env, preexec_fn=preexec,
         )
         result["status"] = "success" if completed.returncode == 0 else "error"
         result["output"] = completed.stdout[-12_000:]
